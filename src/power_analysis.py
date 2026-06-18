@@ -64,34 +64,42 @@ def print_sample_size_summary(n_per_cell):
 
 # ── Sensitivity Analysis ──────────────────────────────────────────────────────
 
-def plot_sensitivity(baseline, alpha, power, save_path=None):
+def plot_sensitivity(baseline, alpha, power, total=None, save_path=None):
     """
     Show how required sample size changes with different MDE assumptions.
-    Useful for communicating tradeoffs to stakeholders.
+    total: actual factorial sample size to draw horizontal reference line.
+           If not provided, calculated from MDE and N_CELLS.
     """
     mde_values = np.arange(0.01, 0.08, 0.005)
     n_values   = []
-
+ 
     for mde in mde_values:
-        n = calculate_sample_size(baseline, mde, alpha, power)
-        n_values.append(n * N_CELLS)  # total across all cells
-
+        # Factorial: effective n per side = n_per_cell x (N_CELLS/2)
+        n_eff = calculate_sample_size(baseline, mde, alpha, power)
+        n_per_cell = int(np.ceil(n_eff / (N_CELLS / 2)))
+        n_values.append(n_per_cell * N_CELLS)
+ 
+    # Use provided total or calculate from MDE
+    if total is None:
+        n_eff  = calculate_sample_size(baseline, MDE, alpha, power)
+        total  = int(np.ceil(n_eff / (N_CELLS / 2))) * N_CELLS
+ 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(mde_values * 100, n_values, color="#2563EB", linewidth=2.5)
     ax.axvline(x=MDE * 100, color="#DC2626", linestyle="--", linewidth=1.5,
                label=f"Chosen MDE = {MDE:.0%}")
-    ax.axhline(y=calculate_sample_size(baseline, MDE, alpha, power) * N_CELLS,
-               color="#DC2626", linestyle=":", linewidth=1)
-
+    ax.axhline(y=total, color="#DC2626", linestyle=":", linewidth=1,
+               label=f"Factorial sample size = {total:,}")
+ 
     ax.set_xlabel("Minimum Detectable Effect (percentage points)", fontsize=12)
     ax.set_ylabel("Total Sample Size Required", fontsize=12)
     ax.set_title("Sample Size vs Detectable Effect\n(α=0.05, Power=80%, 8 treatment cells)",
                  fontsize=13, fontweight="bold")
-    ax.legend(fontsize=11)
+    ax.legend(fontsize=10, loc="upper right")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x):,}"))
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-
+ 
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"  Plot saved → {save_path}")

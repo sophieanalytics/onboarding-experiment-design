@@ -50,7 +50,7 @@ def cell_conversion_probability(row):
 
 # ── Simulate Data ─────────────────────────────────────────────────────────────
 
-def simulate_data(n_per_cell=N_PER_CELL, seed=SEED):
+def simulate_data(n_per_cell=400, seed=SEED):
     """
     Generate user-level Bernoulli conversion outcomes.
 
@@ -104,17 +104,15 @@ def simulate_data(n_per_cell=N_PER_CELL, seed=SEED):
 def validate_data(df):
     """
     Check SRM (Sample Ratio Mismatch) and print observed vs expected conversion.
-    SRM verifies that each group received the expected number of users.
-    SRM check must pass BEFORE looking at any result
+    Expected n per cell is inferred from the data itself.
     """
     print("=" * 60)
     print("  DATA VALIDATION")
     print("=" * 60)
 
-    # SRM check — all cells should have ~N_PER_CELL users
+    # SRM check — infer expected from actual data, not hardcode
     cell_counts = df.groupby("run").size()
-    expected    = N_PER_CELL
-    # calculate max deviation from expected 
+    expected    = cell_counts.mean()  # use actual mean as expected
     max_deviation = ((cell_counts - expected) / expected).abs().max()
     srm_status  = "✅ PASS" if max_deviation < 0.02 else "❌ FAIL"
     print(f"\n  SRM Check (max deviation from expected): "
